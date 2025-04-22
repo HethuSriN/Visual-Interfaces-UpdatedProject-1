@@ -216,3 +216,37 @@ footer a:hover {
     text-decoration: underline;
     color: #bdc3c7; /* Slightly lighter color on hover */
 }
+
+/* Tab Container */
+.tab-container {
+    display: flex;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 10px;
+} 
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: bold;
+    color: #333;
+    outline: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.tab:hover {
+    background-color: #e8f2fb;
+    color: #1f77b4;
+}
+
+.tab.active {
+    border-bottom: 3px solid #1f77b4;
+    color: #1f77b4;
+}
+
+.interactive-element:hover {
+    fill: #377eb8;  /* Same color as brushing */
+    cursor: pointer;
+  }

@@ -26,10 +26,8 @@ Promise.all([
 
     createScatterPlot(csvData);
     createHistogram(csvData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)"); //Default Attribute
-//    createHistogram(csvData, "percent_no_heath_insurance", "#histogram-health", "No Health Insurance (%)");
     createChoroplethMaps("percent_no_heath_insurance"); // Default attribute
 });
-
 
 // Select the slider and label
 const attributes = [
@@ -41,6 +39,16 @@ const attributes = [
     { name: "Percent of Population with High Cholesterol", key: "percent_high_cholesterol" }
 ];
 
+/*Modified Code*/
+var attributes_ = {
+    percent_no_heath_insurance : "Percent of Population with No Health Insurance",
+    education_less_than_high_school_percent: "Percent of Population Less Than High School",
+    percent_high_blood_pressure: "Percent of Population with High Blood Pressure",
+    percent_coronary_heart_disease: "Percent of Population with Coronary Heart Disease", 
+    percent_stroke: "Percent of Population with Stroke", 
+    percent_high_cholesterol: "Percent of Population with High Cholesterol"
+};
+
 // Populate the dropdown for Y-axis selection
 const yAxisDropdown = d3.select("#y-axis-select");
 attributes.forEach((attr, index) => {
@@ -50,18 +58,36 @@ attributes.forEach((attr, index) => {
 });
 
 yAxisDropdown.on("change", function () {
-    const yAxisAttribute = this.value;
-    const xAxisIndex = +d3.select("#attribute-slider").property("value");
-    const xAxisAttribute = attributes[xAxisIndex].key;
+    yAxisAttribute = this.value;
+//    const xAxisIndex = +d3.select("#attribute-slider").property("value"); /* Removed Attribute Slider */
+    const xAxisAttribute = globalselectedAttr; //attributes[xAxisIndex].key; /* Removed Attribute Slider */
 
     updateScatterPlot(csvData, xAxisAttribute, yAxisAttribute);
 });
-d3.select("#attribute-slider").on("input", function () {
-    let index = +this.value;
-    d3.select("#selected-attribute").text(`Current: ${attributes[index].name}`);
-    d3.select("#map-title").text(attributes[index].name);
-    updateVisualizations(attributes[index].key, attributes[index].name);
+
+/* Removed Attribute Slider */
+// d3.select("#attribute-slider").on("input", function () {
+//     let index = +this.value;
+//     d3.select("#selected-attribute").text(`Current: ${attributes[index].name}`);
+//     d3.select("#map-title").text(attributes[index].name);
+//     updateVisualizations(attributes[index].key, attributes[index].name);
+// });
+
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        globalselectedAttr = tab.dataset.attr;
+        const index = attributes.findIndex(attr => attr.key === globalselectedAttr);
+        d3.select("#selected-attribute").text(`Current: ${attributes[index].name}`);
+        d3.select("#map-title").text(attributes[index].name);
+        d3.select("#cmap-title").text('Choropleth Map: ' + attributes[index].name);
+        d3.select("#histogram-title").text('Histogram: ' + attributes[index].name);
+        updateVisualizations(attributes[index].key, attributes[index].name);
+    });
 });
+
 
 function updateVisualizations(attribute, attributeName) {
     createChoroplethMaps(attribute); // Update the choropleth map with the selected attribute
@@ -280,7 +306,6 @@ function createHistogram(data, attribute, container, label) {
         .call(d3.axisLeft(yScale));
 
     const histogramTooltip = d3.select("body").append("div").attr("class", "histogram-tooltip");
-
     svg.selectAll("rect")
         .data(bins)
         .enter().append("rect")
@@ -291,13 +316,13 @@ function createHistogram(data, attribute, container, label) {
         .attr("fill", "steelblue")
         .on("mouseover", (event, d) => {
             histogramTooltip.style("visibility", "visible")
-                   .html(`${label}: ${d.x0.toFixed(1)} - ${d.x1.toFixed(1)}<br>Count of Counties: ${d.length}`)
-                   .style("left", (event.pageX + 10) + "px")
-                   .style("top", (event.pageY - 20) + "px");
+            .html(`${label}: ${d.x0.toFixed(1)} - ${d.x1.toFixed(1)}<br>Count of Counties: ${d.length}`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
         })
         .on("mousemove", event => {
             histogramTooltip.style("left", (event.pageX + 10) + "px")
-                   .style("top", (event.pageY - 20) + "px");
+            .style("top", (event.pageY - 20) + "px");
         })
         .on("mouseout", () => {
             histogramTooltip.style("visibility", "hidden");
@@ -346,7 +371,7 @@ function createChoroplethMaps(attribute) {
 }
 
 
-  
+
 function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
     const svg = d3.select(svgId).attr("width", width).attr("height", height);
     svg.selectAll("*").remove();

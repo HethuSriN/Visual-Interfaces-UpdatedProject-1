@@ -277,17 +277,17 @@ function updateScatterPlot(data, xAttribute, yAttribute) {
     svg.append("g").attr("class", "brush").call(brush);
 }
 
-
+/*Modified Code*/
 function createHistogram(data, attribute, container, label) {
     d3.select(container).selectAll("*").remove();
     const svg = d3.select(container).append("svg")
         .attr("width", width)
         .attr("height", height);
 
-    // svg.selectAll("*").remove();
+    const cleanedData = data.filter(d => d[attribute] !== -1 && d[attribute] != null);
 
     const xScale = d3.scaleLinear()
-        .domain(d3.extent(data, d => d[attribute]))
+        .domain(d3.extent(cleanedData, d => d[attribute]))
         .range([margin.left, width - margin.right]);
 
     const histogram = d3.histogram()
@@ -295,7 +295,7 @@ function createHistogram(data, attribute, container, label) {
         .domain(xScale.domain())
         .thresholds(20);
 
-    const bins = histogram(data);
+    const bins = histogram(cleanedData);
 
     const yScale = d3.scaleLinear()
         .domain([0, d3.max(bins, d => d.length)])
@@ -398,13 +398,19 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
         .attr("d", path)
         .attr("fill", d => {
             const countyData = dataMap[d.id];
-            return countyData ? colorScale(countyData[valueKey]) : "#ccc";
+            return countyData === -1 || countyData == null || countyData[valueKey] == null ? "#ccc" : colorScale(countyData[valueKey]);
         })
         .attr("stroke", "#fff")
         .on("mouseover", (event, d) => {
             const countyData = dataMap[d.id];
-            // Ensure we correctly check for missing data
-            let tooltipText = valueKey !== undefined && valueKey !== null ? `${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%` : "No Data Available";
+            if (countyData === -1 || countyData == null || countyData[valueKey] == null) {
+                return;
+            }
+            let tooltipText = "No Data Available";
+            if (countyData !== -1 && countyData != null && countyData[valueKey] != null) {
+                tooltipText = `${countyData.county}<br>${attributes_[valueKey]}: ${countyData[valueKey]}%`;
+            }
+            
             tooltip.style("display", "block")
                 .html(tooltipText)
                 .style("left", (event.pageX + 10) + "px")

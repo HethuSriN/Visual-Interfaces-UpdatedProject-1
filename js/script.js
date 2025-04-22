@@ -416,6 +416,49 @@ function createChoroplethMaps(attribute) {
     drawChoropleth("#map-svg", counties, dataMap, selectedScale, attribute);
 }
 
+// function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
+//     const svg = d3.select(svgId).attr("width", width).attr("height", height);
+//     svg.selectAll("*").remove();
+//     const projection = d3.geoAlbersUsa()
+//         .translate([width / 2, height / 2])
+//         .scale(width);
+
+//     const path = d3.geoPath().projection(projection);
+
+//     const tooltip = d3.select("body").append("div")
+//         .attr("class", "tooltip")
+//         .style("position", "absolute")
+//         .style("background", "lightgray")
+//         .style("padding", "5px")
+//         .style("border-radius", "5px")
+//         .style("display", "none");
+
+//     svg.selectAll(".county")
+//         .data(counties)
+//         .enter().append("path")
+//         .attr("class", "county")
+//         .attr("d", path)
+//         .attr("fill", d => {
+//             // const countyData = dataMap[d.id];
+//             // return countyData ? colorScale(countyData[valueKey]) : "#ccc";
+//             /*Modified Code*/
+//             const countyData = dataMap[d.id];
+//             return countyData === -1 || countyData == null ? "#ccc" : colorScale(countyData[valueKey]);
+//         })
+//         .attr("stroke", "#fff")
+//         .on("mouseover", (event, d) => {
+//             const countyData = dataMap[d.id];
+//             // Ensure we correctly check for missing data
+//             let tooltipText = valueKey !== undefined && valueKey !== null ? `${countyData.county}<br>${attributes_[valueKey]}: ${countyData[valueKey]}%` : "No Data Available";
+//             tooltip.style("display", "block")
+//                 .html(tooltipText)//`${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%`)
+//                 .style("left", (event.pageX + 10) + "px")
+//                 .style("top", (event.pageY - 20) + "px");
+//         })
+//         .on("mouseout", () => {
+//             tooltip.style("display", "none");
+//         });
+// }
 
 
 function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
@@ -427,6 +470,15 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
         .scale(width);
 
     const path = d3.geoPath().projection(projection);
+
+    // Title
+    // svg.append("text")
+    //     .attr("x", width / 2)
+    //     .attr("y", 15)
+    //     .attr("text-anchor", "middle")
+    //     .attr("font-size", "20px")
+    //     .attr("font-weight", "bold")
+    //     .text(`Choropleth: ${attributes_[valueKey]}`);
 
     const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
@@ -477,7 +529,63 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
 
             tooltip.style("display", "none");
         });
+
+    // Legend
+    const legendWidth = 300;
+    const legendHeight = 10;
+
+    const legendGroup = svg.append("g")
+        .attr("transform", `translate(${(width - legendWidth) / 2}, ${height + 40})`);
+
+    const defs = svg.append("defs");
+    const gradient = defs.append("linearGradient")
+        .attr("id", "legendGradient");
+
+    gradient.selectAll("stop")
+        .data(d3.ticks(0, 1, 10))
+        .enter()
+        .append("stop")
+        .attr("offset", d => `${d * 100}%`)
+        .attr("stop-color", d => {
+            const domain = colorScale.domain();
+            return colorScale(d * (domain[1] - domain[0]) + domain[0]);
+        });
+
+    legendGroup.append("rect")
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .style("fill", "url(#legendGradient)")
+        .attr("stroke", "#000");
+
+    const legendScale = d3.scaleLinear()
+        .domain(colorScale.domain())
+        .range([0, legendWidth]);
+
+    const legendAxis = d3.axisBottom(legendScale)
+        .ticks(5)
+        .tickSize(legendHeight + 3);
+
+    legendGroup.append("g")
+        .attr("transform", `translate(0, 0)`)
+        .call(legendAxis)
+        .select(".domain").remove();
+
+    // Add "No Data" Box
+    legendGroup.append("rect")
+        .attr("x", legendWidth + 20)
+        .attr("width", 20)
+        .attr("height", legendHeight)
+        .attr("fill", "#ccc")
+        .attr("stroke", "#000");
+
+    legendGroup.append("text")
+        .attr("x", legendWidth + 45)
+        .attr("y", legendHeight - 1)
+        .text("No Data")
+        .attr("alignment-baseline", "middle")
+        .style("font-size", "12px");
 }
+
 
 function updateLinkedVisualizations(selectedData) {
     if (selectedData.length === 0) {

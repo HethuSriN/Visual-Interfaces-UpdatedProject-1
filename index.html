@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Education & Health Awareness Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Education & Health Awareness Dashboard</h1>
+        <h3>By: Hethu Sri Nadipudi</h3>
+        <p>Data Source: National Health Data CSV</p>
+    </header>
+    <h2 id="map-title" style="text-align: center">Percent of Population with No Health Insurance</h2>
+    <div id="dashboard-container">
+        <!-- Slider Section -->
+        <div class="slider-container">
+            <label for="attribute-slider"><strong>Select Attribute:</strong></label>
+            <input type="range" id="attribute-slider" min="0" max="5" step="1" value="0">
+            <p class="instructions">Use the slider to select the attribute you want to view.Hover over the slider ticks below to know the attributes.</p>
+            <div class="slider-ticks">
+                <span title="Percent of Population with No Health Insurance"></span>
+                <span title="Percent of Population Less Than High School"></span>
+                <span title="Percent of Population with High Blood Pressure"></span>
+                <span title="Percent of Population with Coronary Heart Disease"></span>
+                <span title="Percent of Population with Stroke"></span>
+                <span title="Percent of Population with High Cholesterol"></span>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Histogram Section -->
+            <section class="card">
+                <h4>Histogram</h4>
+                <div class="graph-container" id="histogram-select"></div>
+                <!-- <div id="histogram-select"></div> -->
+            </section>
+
+            <!-- Map Section -->
+            <section class="card">
+                <h4>Choropleth Map</h4>
+                <div class="graph-container">
+                    <svg id="map-svg" width="100%" height="100%"></svg>
+                </div>
+            </section>
+
+            <!-- Scatter Plot Section -->
+            <section class="card">
+                <h4>Scatter Plot</h4>
+                <label for="y-axis-select">Select Y Axis:</label>
+                <select id="y-axis-select"></select>
+                <div class="graph-container" id="scatterplot"></div>
+            </section>
+        </div>
+    </div>
+    <p class="instructions" style="text-align:center">Use the Scatterplot to implement brushing based on the counties.</p>
+    <footer>
+        <p>Created by Hethu Sri Nadipudi</p>
+    </footer>
+
+    <script src="js/topojson.v3.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>

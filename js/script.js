@@ -1,0 +1,413 @@
+// Set dimensions for scatterplot, histograms, and choropleth maps
+const width = 600, height = 400, margin = { top: 50, right: 30, bottom: 50, left: 60 };
+// Create the SVG container
+const svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+let geoData, csvData; // Declare the variables globally
+
+// Load CSV data and GeoJSON for US counties from the new URL
+Promise.all([
+    d3.json("data/counties-10m.json"),
+    d3.csv("data/national_health_data_2024.csv")
+]).then(([geoDataResponse, csvDataResponse]) => {
+    geoData = geoDataResponse; // Assign geoData
+    csvData = csvDataResponse; // Assign csvData
+
+    csvData.forEach(d => {
+        d.education_less_than_high_school_percent = +d.education_less_than_high_school_percent;
+        d.percent_no_heath_insurance = +d.percent_no_heath_insurance;
+        d.percent_high_blood_pressure = +d.percent_high_blood_pressure;
+        d.percent_coronary_heart_disease = +d.percent_coronary_heart_disease;
+        d.percent_stroke = +d.percent_stroke;
+        d.percent_high_cholesterol = +d.percent_high_cholesterol;
+    });
+
+    createScatterPlot(csvData);
+    createHistogram(csvData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)"); //Default Attribute
+//    createHistogram(csvData, "percent_no_heath_insurance", "#histogram-health", "No Health Insurance (%)");
+    createChoroplethMaps("percent_no_heath_insurance"); // Default attribute
+});
+
+
+// Select the slider and label
+const attributes = [
+    { name: "Percent of Population with No Health Insurance", key: "percent_no_heath_insurance" },
+    { name: "Percent of Population Less Than High School", key: "education_less_than_high_school_percent" },
+    { name: "Percent of Population with High Blood Pressure", key: "percent_high_blood_pressure" },
+    { name: "Percent of Population with Coronary Heart Disease", key: "percent_coronary_heart_disease" },
+    { name: "Percent of Population with Stroke", key: "percent_stroke" },
+    { name: "Percent of Population with High Cholesterol", key: "percent_high_cholesterol" }
+];
+
+// Populate the dropdown for Y-axis selection
+const yAxisDropdown = d3.select("#y-axis-select");
+attributes.forEach((attr, index) => {
+    yAxisDropdown.append("option")
+        .attr("value", attr.key)
+        .text(attr.name);
+});
+
+yAxisDropdown.on("change", function () {
+    const yAxisAttribute = this.value;
+    const xAxisIndex = +d3.select("#attribute-slider").property("value");
+    const xAxisAttribute = attributes[xAxisIndex].key;
+
+    updateScatterPlot(csvData, xAxisAttribute, yAxisAttribute);
+});
+d3.select("#attribute-slider").on("input", function () {
+    let index = +this.value;
+    d3.select("#selected-attribute").text(`Current: ${attributes[index].name}`);
+    d3.select("#map-title").text(attributes[index].name);
+    updateVisualizations(attributes[index].key, attributes[index].name);
+});
+
+function updateVisualizations(attribute, attributeName) {
+    createChoroplethMaps(attribute); // Update the choropleth map with the selected attribute
+    createHistogram(csvData, attribute, "#histogram-select", attributeName + '(%)'); //Update Histogram
+    updateScatterPlot(csvData, attribute, "percent_no_heath_insurance");
+
+}
+
+function getColorScale(attribute, data) {
+    let extent = d3.extent(data, d => +d[attribute]); // Ensure numeric values
+    return d3.scaleSequential(d3.interpolateBlues).domain(extent);
+}
+function updateChoroplethMap(attribute, data) {
+    let colorScale = getColorScale(attribute, data);
+
+    d3.selectAll(".county")
+        .transition()
+        .duration(500)
+        .attr("fill", d => {
+            let value = +d[attribute]; 
+            return value ? colorScale(value) : "#ccc"; // Default to gray if no data
+        })
+        .on("mouseover", function (event, d) {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("stroke", "black")
+                .attr("stroke-width", 2)
+                .attr("opacity", 0.8);
+
+            const value = d[attribute];
+            d3.select("#tooltip")
+                .style("visibility", "visible")
+                .html(value ? `${attribute}: ${value.toFixed(2)}%` : "No Data Available")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", function () {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("stroke", "none")
+                .attr("opacity", 1);
+
+            d3.select("#tooltip").style("visibility", "hidden");
+        });
+}
+
+
+function createScatterPlot(data) {
+    const svg = d3.select("#scatterplot").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.education_less_than_high_school_percent))
+        .range([margin.left, width - margin.right]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.percent_no_heath_insurance))
+        .range([height - margin.bottom, margin.top]);
+
+    svg.append("g").attr("transform", `translate(0, ${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale));
+
+    svg.append("g").attr("transform", `translate(${margin.left}, 0)`)
+        .call(d3.axisLeft(yScale));
+
+    const circles = svg.selectAll("circle")
+        .data(data)
+        .enter().append("circle")
+        .attr("cx", d => xScale(d.education_less_than_high_school_percent))
+        .attr("cy", d => yScale(d.percent_no_heath_insurance))
+        .attr("r", 5)
+        .attr("fill", "steelblue")
+        .attr("class", "scatter-point");
+
+    const brush = d3.brush()
+        .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+        .on("brush end", ({ selection }) => {
+            if (!selection) return;
+            const [[x0, y0], [x1, y1]] = selection;
+
+            const selectedData = data.filter(d =>
+                x0 <= xScale(d.education_less_than_high_school_percent) && xScale(d.education_less_than_high_school_percent) <= x1 &&
+                y0 <= yScale(d.percent_no_heath_insurance) && yScale(d.percent_no_heath_insurance) <= y1
+            );
+
+            // Highlight selected points
+            circles.attr("fill", d => selectedData.includes(d) ? "orange" : "steelblue");
+
+            // Update linked visualizations
+            updateLinkedVisualizations(selectedData);
+        });
+
+    svg.append("g").attr("class", "brush").call(brush);
+    // Append new axis labels
+    svg.append("text")
+        .attr("class", "axis-label")
+        .attr("x", width / 2)
+        .attr("y", height - 10)
+        .style("text-anchor", "middle")
+        .text("Percent of Population Less Than High School (%)");
+
+    svg.append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", 15)
+        .style("text-anchor", "middle")
+        .text("Percent of Population with No Health Insurance (%)");
+}
+
+function updateScatterPlot(data, xAttribute, yAttribute) {
+    const svg = d3.select("#scatterplot svg");
+
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d[xAttribute]))
+        .range([margin.left, width - margin.right]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d[yAttribute]))
+        .range([height - margin.bottom, margin.top]);
+    
+
+    // Remove old axis labels
+    svg.selectAll(".axis-label").remove();
+
+    // Update axes
+    svg.select(".x-axis")
+        .transition().duration(500)
+        .call(d3.axisBottom(xScale));
+
+    svg.select(".y-axis")
+        .transition().duration(500)
+        .call(d3.axisLeft(yScale));
+
+    // Update scatterplot circles
+    svg.selectAll("circle")
+        .data(data)
+        .transition()
+        .duration(500)
+        .attr("cx", d => xScale(d[xAttribute]))
+        .attr("cy", d => yScale(d[yAttribute]));
+    
+    // Append new axis labels
+    svg.append("text")
+        .attr("class", "axis-label")
+        .attr("x", width / 2)
+        .attr("y", height - 10)
+        .style("text-anchor", "middle")
+        .text(attributes.find(attr => attr.key === xAttribute).name + " (%)");
+
+    svg.append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", 15)
+        .style("text-anchor", "middle")
+        .text(attributes.find(attr => attr.key === yAttribute).name + " (%)");
+
+    // Remove old brush before reapplying
+    svg.select(".brush").remove();
+
+    // Add brushing again
+    const brush = d3.brush()
+        .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+        .on("brush end", ({ selection }) => {
+            if (!selection) return;
+            const [[x0, y0], [x1, y1]] = selection;
+
+            const selectedData = data.filter(d =>
+                x0 <= xScale(d[xAttribute]) && xScale(d[xAttribute]) <= x1 &&
+                y0 <= yScale(d[yAttribute]) && yScale(d[yAttribute]) <= y1
+            );
+
+            // Highlight selected points
+            svg.selectAll("circle")
+                .attr("fill", d => selectedData.includes(d) ? "orange" : "steelblue");
+
+            // Update linked visualizations
+            updateLinkedVisualizations(selectedData);
+        });
+
+    svg.append("g").attr("class", "brush").call(brush);
+}
+
+
+function createHistogram(data, attribute, container, label) {
+    d3.select(container).selectAll("*").remove();
+    const svg = d3.select(container).append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    // svg.selectAll("*").remove();
+
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d[attribute]))
+        .range([margin.left, width - margin.right]);
+
+    const histogram = d3.histogram()
+        .value(d => d[attribute])
+        .domain(xScale.domain())
+        .thresholds(20);
+
+    const bins = histogram(data);
+
+    const yScale = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .range([height - margin.bottom, margin.top]);
+
+    svg.append("g").attr("transform", `translate(0, ${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale));
+
+    svg.append("g").attr("transform", `translate(${margin.left}, 0)`)
+        .call(d3.axisLeft(yScale));
+
+    const histogramTooltip = d3.select("body").append("div").attr("class", "histogram-tooltip");
+
+    svg.selectAll("rect")
+        .data(bins)
+        .enter().append("rect")
+        .attr("x", d => xScale(d.x0))
+        .attr("y", d => yScale(d.length))
+        .attr("width", d => Math.max(0, xScale(d.x1) - xScale(d.x0) - 1))
+        .attr("height", d => height - margin.bottom - yScale(d.length))
+        .attr("fill", "steelblue")
+        .on("mouseover", (event, d) => {
+            histogramTooltip.style("visibility", "visible")
+                   .html(`${label}: ${d.x0.toFixed(1)} - ${d.x1.toFixed(1)}<br>Count of Counties: ${d.length}`)
+                   .style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mousemove", event => {
+            histogramTooltip.style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => {
+            histogramTooltip.style("visibility", "hidden");
+        });
+
+    svg.append("text").attr("x", width / 2).attr("y", height - 10)
+        .style("text-anchor", "middle").text(label);
+
+    svg.append("text").attr("transform", "rotate(-90)").attr("x", -height / 2)
+        .attr("y", 15).style("text-anchor", "middle").text("Count of Counties");
+}
+
+function createChoroplethMaps(attribute) {
+    const dataMap = {};
+
+    // Create a mapping for CSV data based on county FIPS codes
+    csvData.forEach(d => {
+        dataMap[d.cnty_fips] = {
+            county: d.display_name,
+            education_less_than_high_school_percent: d.education_less_than_high_school_percent,
+            percent_no_heath_insurance: d.percent_no_heath_insurance,
+            percent_high_blood_pressure: d.percent_high_blood_pressure,
+            percent_coronary_heart_disease: d.percent_coronary_heart_disease,
+            percent_stroke: d.percent_stroke,
+            percent_high_cholesterol: d.percent_high_cholesterol
+        };
+    });
+
+    // const colorScales = {
+    //     education_less_than_high_school_percent: d3.scaleSequential(d3.interpolateBlues).domain([0, d3.max(csvData, d => d.education_less_than_high_school_percent)]),
+    //     percent_no_heath_insurance: d3.scaleSequential(d3.interpolateReds).domain([0, d3.max(csvData, d => d.percent_no_heath_insurance)]),
+    //     percent_high_blood_pressure: d3.scaleSequential(d3.interpolatePurples).domain([0, d3.max(csvData, d => d.percent_high_blood_pressure)]),
+    //     percent_coronary_heart_disease: d3.scaleSequential(d3.interpolateOranges).domain([0, d3.max(csvData, d => d.percent_coronary_heart_disease)]),
+    //     percent_stroke: d3.scaleSequential(d3.interpolateYlGnBu).domain([0, d3.max(csvData, d => d.percent_stroke)]),
+    //     percent_high_cholesterol: d3.scaleSequential(d3.interpolateGreens).domain([0, d3.max(csvData, d => d.percent_high_cholesterol)])
+    // };
+
+    const colorScales =  d3.scaleSequential(d3.interpolateBlues).domain([0, d3.max(csvData, d => d[attribute])]);
+
+    // Convert the TopoJSON data to GeoJSON
+    const counties = topojson.feature(geoData, geoData.objects.counties).features;
+
+    // Call the function to draw the choropleth map based on the selected attribute
+    const selectedScale = colorScales;
+    drawChoropleth("#map-svg", counties, dataMap, selectedScale, attribute);
+}
+
+
+  
+function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
+    const svg = d3.select(svgId).attr("width", width).attr("height", height);
+    svg.selectAll("*").remove();
+    const projection = d3.geoAlbersUsa()
+        .translate([width / 2, height / 2])
+        .scale(width);
+
+    const path = d3.geoPath().projection(projection);
+
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("background", "lightgray")
+        .style("padding", "5px")
+        .style("border-radius", "5px")
+        .style("display", "none");
+
+    svg.selectAll(".county")
+        .data(counties)
+        .enter().append("path")
+        .attr("class", "county")
+        .attr("d", path)
+        .attr("fill", d => {
+            const countyData = dataMap[d.id];
+            return countyData ? colorScale(countyData[valueKey]) : "#ccc";
+        })
+        .attr("stroke", "#fff")
+        .on("mouseover", (event, d) => {
+            const countyData = dataMap[d.id];
+            // Ensure we correctly check for missing data
+            let tooltipText = valueKey !== undefined && valueKey !== null ? `${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%` : "No Data Available";
+            tooltip.style("display", "block")
+                .html(tooltipText)//`${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => {
+            tooltip.style("display", "none");
+        });
+}
+
+function updateLinkedVisualizations(selectedData) {
+    if (selectedData.length === 0) {
+        createHistogram(csvData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)");
+        createChoroplethMaps("percent_no_heath_insurance");
+    } else {
+        createHistogram(selectedData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)");
+        updateChoroplethMapBrush("percent_no_heath_insurance", selectedData);
+    }
+}
+function updateChoroplethMapBrush(attribute, selectedData) {
+    const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));
+    let colorScale = getColorScale(attribute, csvData);
+
+    d3.selectAll(".county")
+        .transition()
+        .duration(100)
+        .attr("fill", d => {
+            let countyData = csvData.find(cd => cd.cnty_fips == d.id);
+            if (!countyData) return "#ccc";
+            return selectedCountyFIPS.has(countyData.cnty_fips) ? colorScale(countyData[attribute]) : "#ccc";
+        });
+}
+

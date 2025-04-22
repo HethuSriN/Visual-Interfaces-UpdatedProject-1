@@ -1,5 +1,7 @@
 // Set dimensions for scatterplot, histograms, and choropleth maps
 const width = 600, height = 400, margin = { top: 50, right: 30, bottom: 50, left: 60 };
+var globalselectedAttr = "percent_no_heath_insurance"; // Default selected attribute
+var yAxisAttribute = "percent_no_heath_insurance"; // Default Y-axis attribute
 // Create the SVG container
 const svg = d3.select("body").append("svg")
   .attr("width", width)
@@ -92,7 +94,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 function updateVisualizations(attribute, attributeName) {
     createChoroplethMaps(attribute); // Update the choropleth map with the selected attribute
     createHistogram(csvData, attribute, "#histogram-select", attributeName + '(%)'); //Update Histogram
-    updateScatterPlot(csvData, attribute, "percent_no_heath_insurance");
+    updateScatterPlot(csvData, attribute, yAxisAttribute); // Update the scatterplot with the selected attribute
 
 }
 
@@ -100,6 +102,7 @@ function getColorScale(attribute, data) {
     let extent = d3.extent(data, d => +d[attribute]); // Ensure numeric values
     return d3.scaleSequential(d3.interpolateBlues).domain(extent);
 }
+
 function updateChoroplethMap(attribute, data) {
     let colorScale = getColorScale(attribute, data);
 
@@ -135,7 +138,6 @@ function updateChoroplethMap(attribute, data) {
             d3.select("#tooltip").style("visibility", "hidden");
         });
 }
-
 
 function createScatterPlot(data) {
     const svg = d3.select("#scatterplot").append("svg")
@@ -404,7 +406,7 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
             // Ensure we correctly check for missing data
             let tooltipText = valueKey !== undefined && valueKey !== null ? `${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%` : "No Data Available";
             tooltip.style("display", "block")
-                .html(tooltipText)//`${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%`)
+                .html(tooltipText)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 20) + "px");
         })
@@ -415,13 +417,30 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
 
 function updateLinkedVisualizations(selectedData) {
     if (selectedData.length === 0) {
-        createHistogram(csvData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)");
-        createChoroplethMaps("percent_no_heath_insurance");
+        /*Modified Code*/
+        createHistogram(csvData, globalselectedAttr, "#histogram-select", attributes_[globalselectedAttr] + '(%)');
+        createChoroplethMaps(globalselectedAttr);
     } else {
-        createHistogram(selectedData, "percent_no_heath_insurance", "#histogram-select", "Percent of Population with No Health Insurance (%)");
-        updateChoroplethMapBrush("percent_no_heath_insurance", selectedData);
+        /*Modified Code*/
+        createHistogram(selectedData, globalselectedAttr, "#histogram-select", attributes_[globalselectedAttr] + '(%)');
+        updateChoroplethMapBrush(globalselectedAttr, selectedData);
     }
 }
+
+// function updateChoroplethMapBrush(attribute, selectedData) {
+//     const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));
+//     let colorScale = getColorScale(attribute, csvData);
+
+//     d3.selectAll(".county")
+//         .transition()
+//         .duration(100)
+//         .attr("fill", d => {
+//             let countyData = csvData.find(cd => cd.cnty_fips == d.id);
+//             if (!countyData) return "#ccc";
+//             return selectedCountyFIPS.has(countyData.cnty_fips) ? colorScale(countyData[attribute]) : "#ccc";
+//         });
+// }
+
 function updateChoroplethMapBrush(attribute, selectedData) {
     const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));
     let colorScale = getColorScale(attribute, csvData);

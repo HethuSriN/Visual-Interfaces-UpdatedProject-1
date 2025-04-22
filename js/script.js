@@ -242,7 +242,8 @@ function updateScatterPlot(data, xAttribute, yAttribute) {
         .transition()
         .duration(500)
         .attr("cx", d => xScale(d[xAttribute]))
-        .attr("cy", d => yScale(d[yAttribute]));
+        .attr("cy", d => yScale(d[yAttribute]))
+        .attr("fill", "steelblue");
     
     // Append new axis labels
     svg.append("text")
@@ -416,51 +417,6 @@ function createChoroplethMaps(attribute) {
     drawChoropleth("#map-svg", counties, dataMap, selectedScale, attribute);
 }
 
-// function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
-//     const svg = d3.select(svgId).attr("width", width).attr("height", height);
-//     svg.selectAll("*").remove();
-//     const projection = d3.geoAlbersUsa()
-//         .translate([width / 2, height / 2])
-//         .scale(width);
-
-//     const path = d3.geoPath().projection(projection);
-
-//     const tooltip = d3.select("body").append("div")
-//         .attr("class", "tooltip")
-//         .style("position", "absolute")
-//         .style("background", "lightgray")
-//         .style("padding", "5px")
-//         .style("border-radius", "5px")
-//         .style("display", "none");
-
-//     svg.selectAll(".county")
-//         .data(counties)
-//         .enter().append("path")
-//         .attr("class", "county")
-//         .attr("d", path)
-//         .attr("fill", d => {
-//             // const countyData = dataMap[d.id];
-//             // return countyData ? colorScale(countyData[valueKey]) : "#ccc";
-//             /*Modified Code*/
-//             const countyData = dataMap[d.id];
-//             return countyData === -1 || countyData == null ? "#ccc" : colorScale(countyData[valueKey]);
-//         })
-//         .attr("stroke", "#fff")
-//         .on("mouseover", (event, d) => {
-//             const countyData = dataMap[d.id];
-//             // Ensure we correctly check for missing data
-//             let tooltipText = valueKey !== undefined && valueKey !== null ? `${countyData.county}<br>${attributes_[valueKey]}: ${countyData[valueKey]}%` : "No Data Available";
-//             tooltip.style("display", "block")
-//                 .html(tooltipText)//`${countyData.county}<br>${valueKey}: ${countyData[valueKey]}%`)
-//                 .style("left", (event.pageX + 10) + "px")
-//                 .style("top", (event.pageY - 20) + "px");
-//         })
-//         .on("mouseout", () => {
-//             tooltip.style("display", "none");
-//         });
-// }
-
-
 function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
     const svg = d3.select(svgId).attr("width", width).attr("height", height + 100);
     svg.selectAll("*").remove();
@@ -598,20 +554,6 @@ function updateLinkedVisualizations(selectedData) {
         updateChoroplethMapBrush(globalselectedAttr, selectedData);
     }
 }
-
-// function updateChoroplethMapBrush(attribute, selectedData) {
-//     const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));
-//     let colorScale = getColorScale(attribute, csvData);
-
-//     d3.selectAll(".county")
-//         .transition()
-//         .duration(100)
-//         .attr("fill", d => {
-//             let countyData = csvData.find(cd => cd.cnty_fips == d.id);
-//             if (!countyData) return "#ccc";
-//             return selectedCountyFIPS.has(countyData.cnty_fips) ? colorScale(countyData[attribute]) : "#ccc";
-//         });
-// }
 
 function updateChoroplethMapBrush(attribute, selectedData) {
     const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));

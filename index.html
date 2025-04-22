@@ -14,8 +14,9 @@
         <h3>By: Hethu Sri Nadipudi</h3>
         <p>Data Source: National Health Data CSV</p>
     </header>
-    <h2 id="map-title" style="text-align: center">Percent of Population with No Health Insurance</h2>
+    <!-- <h2 id="map-title" style="text-align: center">Percent of Population with No Health Insurance</h2> -->
     <div id="dashboard-container">
+
         <div id="tabs" class="tab-container">
             <button class="tab active" data-attr="percent_no_heath_insurance">Percent of Population with No Health Insurance %</button>
             <button class="tab" data-attr="education_less_than_high_school_percent">Percent of Population Less Than High School %</button>
@@ -24,7 +25,7 @@
             <button class="tab" data-attr="percent_stroke">Percent of Population with Stroke %</button>
             <button class="tab" data-attr="percent_high_cholesterol">Percent of Population with High Cholesterol %</button>
           </div>
-
+          
         <!-- Slider Section -->
         <!-- <div class="slider-container">
             <label for="attribute-slider"><strong>Select Attribute:</strong></label>
@@ -44,14 +45,15 @@
         <div class="dashboard-grid">
             <!-- Histogram Section -->
             <section class="card">
-                <h4>Histogram</h4>
+                <h4 id="histogram-title" style="text-align: center">Histogram: Percent of Population with No Health Insurance</h4>
                 <div class="graph-container" id="histogram-select"></div>
                 <!-- <div id="histogram-select"></div> -->
             </section>
 
             <!-- Map Section -->
             <section class="card">
-                <h4>Choropleth Map</h4>
+                <h4 id="cmap-title" style="text-align: center">Choropleth Map: Percent of Population with No Health Insurance</h4>
+                <!-- <h4>Choropleth Map</h4> -->
                 <div class="graph-container">
                     <svg id="map-svg" width="100%" height="100%"></svg>
                 </div>

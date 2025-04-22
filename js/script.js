@@ -193,6 +193,8 @@ function createScatterPlot(data) {
         });
 
     svg.append("g").attr("class", "brush").call(brush);
+
+
     // Append new axis labels
     svg.append("text")
         .attr("class", "axis-label")
@@ -331,17 +333,21 @@ function createHistogram(data, attribute, container, label) {
         .attr("width", d => Math.max(0, xScale(d.x1) - xScale(d.x0) - 1))
         .attr("height", d => height - margin.bottom - yScale(d.length))
         .attr("fill", "steelblue")
-        .on("mouseover", (event, d) => {
+        .on("mouseover", function (event, d) {
+            // Change fill color on hover
+            d3.select(this).attr("fill", "orange");
             histogramTooltip.style("visibility", "visible")
             .html(`${label}: ${d.x0.toFixed(1)} - ${d.x1.toFixed(1)}<br>Count of Counties: ${d.length}`)
             .style("left", (event.pageX + 10) + "px")
             .style("top", (event.pageY - 20) + "px");
         })
-        .on("mousemove", event => {
+        .on("mousemove", function(event) {
             histogramTooltip.style("left", (event.pageX + 10) + "px")
             .style("top", (event.pageY - 20) + "px");
         })
-        .on("mouseout", () => {
+        .on("mouseout", function () {
+            // Restore original fill
+            d3.select(this).attr("fill", "steelblue");
             histogramTooltip.style("visibility", "hidden");
         });
 
@@ -403,8 +409,9 @@ function createChoroplethMaps(attribute) {
 
 
 function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
-    const svg = d3.select(svgId).attr("width", width).attr("height", height);
+    const svg = d3.select(svgId).attr("width", width).attr("height", height + 100);
     svg.selectAll("*").remove();
+
     const projection = d3.geoAlbersUsa()
         .translate([width / 2, height / 2])
         .scale(width);
@@ -429,7 +436,14 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
             return countyData === -1 || countyData == null || countyData[valueKey] == null ? "#ccc" : colorScale(countyData[valueKey]);
         })
         .attr("stroke", "#fff")
-        .on("mouseover", (event, d) => {
+        .on("mouseover", function (event, d) {
+            // Save current color before hover
+            const originalColor = d3.select(this).attr("fill");
+            d3.select(this).attr("data-original-fill", originalColor);
+
+            // Apply hover color (same as brushing)
+            d3.select(this).attr("fill", "orange");
+
             const countyData = dataMap[d.id];
             if (countyData === -1 || countyData == null || countyData[valueKey] == null) {
                 return;
@@ -444,7 +458,13 @@ function drawChoropleth(svgId, counties, dataMap, colorScale, valueKey) {
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 20) + "px");
         })
-        .on("mouseout", () => {
+        .on("mouseout", function() {
+            // Revert to original fill
+            const originalColor = d3.select(this).attr("data-original-fill");
+            if (originalColor) {
+                d3.select(this).attr("fill", originalColor);
+            }
+
             tooltip.style("display", "none");
         });
 }
@@ -477,15 +497,76 @@ function updateLinkedVisualizations(selectedData) {
 
 function updateChoroplethMapBrush(attribute, selectedData) {
     const selectedCountyFIPS = new Set(selectedData.map(d => d.cnty_fips));
-    let colorScale = getColorScale(attribute, csvData);
+    const colorScale = getColorScale(attribute, csvData);
+
+    // Convert the TopoJSON data to GeoJSON
+    const counties = topojson.feature(geoData, geoData.objects.counties).features;
+
+    // Remove any existing tooltip to avoid duplicates
+    d3.select(".brush-tooltip").remove();
+
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "brush-tooltip")
+        .style("position", "absolute")
+        .style("background", "lightgray")
+        .style("padding", "5px")
+        .style("border-radius", "5px")
+        .style("display", "none");
 
     d3.selectAll(".county")
+        .attr("class", "county")
         .transition()
         .duration(100)
         .attr("fill", d => {
-            let countyData = csvData.find(cd => cd.cnty_fips == d.id);
-            if (!countyData) return "#ccc";
-            return selectedCountyFIPS.has(countyData.cnty_fips) ? colorScale(countyData[attribute]) : "#ccc";
+            const countyData = csvData.find(cd => cd.cnty_fips == d.id);
+            if (!countyData || countyData[attribute] == null || countyData[attribute] == -1) {
+                return "#ccc";
+            }
+            return selectedCountyFIPS.has(countyData.cnty_fips)
+                ? colorScale(countyData[attribute])
+                : "#ccc";
+        });
+
+    // Re-bind mouse events to show tooltip only for valid and selected counties
+    d3.selectAll(".county")
+    .attr("class", "county")
+    .on("mouseover", function (event, d) {
+        // Save current color before hover
+        const originalColor = d3.select(this).attr("fill");
+        d3.select(this).attr("data-original-fill", originalColor);
+
+        // Apply hover color (same as brushing)
+        d3.select(this).attr("fill", "orange");
+
+        const countyData = csvData.find(cd => cd.cnty_fips == d.id);
+
+        if (!countyData || countyData[attribute] == null || countyData[attribute] == -1 || !selectedCountyFIPS.has(countyData.cnty_fips)) {
+                tooltip.style("display", "none");
+                return;
+            }
+            // Ensure we correctly check for missing data
+            const countyName = countyData.display_name || "Unknown County";
+            const tooltipText = `${countyName}<br>${attributes_[attribute]}: ${countyData[attribute]}%`;
+
+            tooltip
+                .style("display", "block")
+                .html(tooltipText)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mousemove", event => {
+            tooltip
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", function() {
+            // Revert to original fill
+            const originalColor = d3.select(this).attr("data-original-fill");
+            if (originalColor) {
+                d3.select(this).attr("fill", originalColor);
+            }
+            tooltip.style("display", "none");
         });
 }
+
 

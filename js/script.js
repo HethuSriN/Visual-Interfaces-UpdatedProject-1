@@ -330,6 +330,19 @@ function createHistogram(data, attribute, container, label) {
             histogramTooltip.style("visibility", "hidden");
         });
 
+    // Data labels on top of bars
+    svg.selectAll("text.bar-label")
+        .data(bins)
+        .enter()
+        .append("text")
+        .attr("class", "bar-label")
+        .attr("x", d => xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2)
+        .attr("y", d => yScale(d.length) - 5)
+        .attr("text-anchor", "middle")
+        .style("font-size", "10px")
+        .style("fill", "#333")
+        .text(d => d.length > 0 ? d.length : "");
+
     svg.append("text").attr("x", width / 2).attr("y", height - 10)
         .style("text-anchor", "middle").text(label);
 

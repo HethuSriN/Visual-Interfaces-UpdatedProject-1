@@ -170,7 +170,14 @@ function createScatterPlot(data) {
     const brush = d3.brush()
         .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
         .on("brush end", ({ selection }) => {
-            if (!selection) return;
+            if (!selection) {
+                // Brush cleared – reset colors and linked visualizations
+                circles.attr("fill", "steelblue");
+                updateLinkedVisualizations(data); // Or use [] if you want to clear it
+                return;
+            }
+        
+            // if (!selection) return;
             const [[x0, y0], [x1, y1]] = selection;
 
             const selectedData = data.filter(d =>
@@ -258,7 +265,13 @@ function updateScatterPlot(data, xAttribute, yAttribute) {
     const brush = d3.brush()
         .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
         .on("brush end", ({ selection }) => {
-            if (!selection) return;
+            if (!selection) {
+                // Brush cleared – reset colors and linked visualizations
+                svg.selectAll("circle").attr("fill", "steelblue");
+                updateLinkedVisualizations(data); // or updateLinkedVisualizations([])
+                return;
+            }
+            //if (!selection) return;
             const [[x0, y0], [x1, y1]] = selection;
 
             const selectedData = data.filter(d =>
@@ -273,6 +286,8 @@ function updateScatterPlot(data, xAttribute, yAttribute) {
             // Update linked visualizations
             updateLinkedVisualizations(selectedData);
         });
+    // Clear previous brush
+    svg.select(".brush").remove();
 
     svg.append("g").attr("class", "brush").call(brush);
 }

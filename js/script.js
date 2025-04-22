@@ -396,7 +396,17 @@ function createChoroplethMaps(attribute) {
     //     percent_high_cholesterol: d3.scaleSequential(d3.interpolateGreens).domain([0, d3.max(csvData, d => d.percent_high_cholesterol)])
     // };
 
-    const colorScales =  d3.scaleSequential(d3.interpolateBlues).domain([0, d3.max(csvData, d => d[attribute])]);
+    // const colorScales =  d3.scaleSequential(d3.interpolateBlues).domain([0, d3.max(csvData, d => d[attribute])]);
+
+    // Filter valid values for the color scale
+    const validValues = csvData
+    .map(d => d[attribute])
+    .filter(v => v !== -1 && v != null);
+
+    const colorScales = d3.scaleSequential()
+    .domain([d3.min(validValues), d3.max(validValues)])
+    .interpolator(d3.interpolateBlues);
+
 
     // Convert the TopoJSON data to GeoJSON
     const counties = topojson.feature(geoData, geoData.objects.counties).features;

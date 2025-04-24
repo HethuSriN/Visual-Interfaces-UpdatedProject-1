@@ -55,13 +55,17 @@ Visualization Components:
 
 Home Page(Updated):
 
-image.png
+![image](https://github.com/user-attachments/assets/c467bb38-3bf7-475b-9d2a-580815b6ee91)
+
 Tab Based Attribute Selection:
 I selected the default attribute as Percent of Population with No Health Insurance. I implemented tab-based attribute selection to streamline user interaction.Each tab corresponds to a different attribute, simplifying exploration of data variables. It enhances usability and ensures users can quickly compare different attributes..
 
-image.png
-image.png
+![image](https://github.com/user-attachments/assets/aef52f3d-be28-4bd1-897b-938af8a045cf)
+
+
 Histogram:
+![image](https://github.com/user-attachments/assets/49169aa1-fb41-4e6c-9104-28d09d7f2a30)
+
 
 Updated the histogram with a clearer, formatted tooltip and added a title for better readability.
 
@@ -81,8 +85,9 @@ A descriptive title was introduced to provide context at a glance.
 
 A color legend was added to explain the data scale, improving interpretability.
 
-image.png
-image.png
+![image](https://github.com/user-attachments/assets/cedee1d8-a77a-4063-af2f-349c050f42f6)
+
+
 Brushing Technique:
 
 For the scatterplot, the brushing interaction was enhanced by implementing a clear/reset feature.
@@ -92,8 +97,10 @@ Users can now easily remove the brush selection without needing to refresh or pe
 This improves the overall usability and interactivity of the visualization.
 
 The fix ensures a smoother and more intuitive exploration experience.
+![image](https://github.com/user-attachments/assets/29be7b84-f326-4a76-b8f9-757548e7ab74)
 
-image.png
+![image](https://github.com/user-attachments/assets/e579bf08-3905-4ab6-ac27-042d5d2f4ad7)
+
 Removal of brush selection, upon clicking anywhere on the scatterplot
 
 Bug Fixes in Version 2:
